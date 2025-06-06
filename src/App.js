@@ -5,7 +5,8 @@ import {
     onAuthStateChanged,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
-    signOut
+    signOut,
+    sendPasswordResetEmail // Importado para a nova funcionalidade
 } from 'firebase/auth'; 
 import { 
     getFirestore, 
@@ -21,7 +22,7 @@ import {
     Timestamp
 } from 'firebase/firestore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, FunnelChart, Funnel, LabelList } from 'recharts';
-import { LogOut, Edit2, Trash2, PlusCircle, Search, Settings, LayoutDashboard, Users, Target, DollarSign, AlertTriangle, Info, CheckCircle, XCircle, Eye, EyeOff, Save, Flame, UserCircle, Menu, X } from 'lucide-react';
+import { LogOut, Edit2, Trash2, PlusCircle, Search, Settings, LayoutDashboard, Users, Target, DollarSign, AlertTriangle, Info, CheckCircle, XCircle, Eye, EyeOff, Save, Flame, UserCircle, Mail } from 'lucide-react';
 
 // --- src/firebase/config.js ---
 const firebaseConfig = {
@@ -151,24 +152,47 @@ const InputField = React.memo(({ label, name, type = "text", value, onChange, pl
     </div>
 ));
 
-const ChartCard = ({ title, children }) => (
-    <div className="bg-slate-800 p-4 sm:p-6 rounded-xl shadow-lg">
-        <h2 className="text-xl font-semibold text-orange-400 mb-4">{title}</h2>
-        <div className="h-[300px]"> 
-             {children}
-        </div>
-    </div>
-);
+// --- src/modals/ForgotPasswordModal.js ---
+const ForgotPasswordModal = React.memo(({ onClose, setToastMessage }) => {
+    const [email, setEmail] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-const NoDataMessage = () => (
-    <div className="flex flex-col items-center justify-center h-full text-slate-500">
-        <AlertTriangle size={36} className="mb-2 text-orange-500" />
-        <p className="text-sm">Não há dados suficientes para exibir este gráfico.</p>
-        <p className="text-xs">Tente ajustar os filtros ou adicionar mais leads.</p>
-    </div>
-);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+            await sendPasswordResetEmail(auth, email);
+            setToastMessage({ text: 'E-mail de recuperação enviado! Verifique a sua caixa de entrada.', type: 'success' });
+            onClose();
+        } catch (err) {
+            console.error("Password Reset Error:", err);
+            setError("Falha ao enviar o e-mail. Verifique se o endereço está correto.");
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    return (
+        <Modal onClose={onClose} title="Recuperar Senha">
+            <p className="text-slate-400 mb-6 text-sm">Insira o seu e-mail para receber um link de recuperação de senha.</p>
+            {error && <p className="bg-red-600/30 border border-red-500 text-red-300 p-3 rounded-md mb-4 text-sm text-center">{error}</p>}
+            <form onSubmit={handleSubmit} className="space-y-4">
+                 <InputField label="E-mail" type="email" name="reset-email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" required />
+                 <div className="flex justify-end space-x-3 pt-2">
+                    <button type="button" onClick={onClose} disabled={loading} className="px-4 py-2 text-slate-300 hover:bg-slate-700 rounded-md transition-colors disabled:opacity-50">Cancelar</button>
+                    <button type="submit" disabled={loading} className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-md shadow-sm transition-colors flex items-center justify-center disabled:opacity-50">
+                        {loading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div> : <><Mail size={18} className="mr-2"/>Enviar E-mail</>}
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    );
+});
 
-// --- Views (as standalone components) ---
+
+// --- src/views/AuthView.js ---
 const AuthView = ({ setToastMessage }) => {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
@@ -176,6 +200,7 @@ const AuthView = ({ setToastMessage }) => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -221,42 +246,56 @@ const AuthView = ({ setToastMessage }) => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-slate-900 p-4">
-            <div className="w-full max-w-md bg-slate-800 p-8 rounded-xl shadow-2xl">
-                <div className="flex justify-center items-center mb-4">
-                    <Flame size={40} className="text-orange-500 mr-2" />
-                    <h1 className="text-4xl font-bold text-orange-400 text-center">HOTLEADS</h1>
-                </div>
-                <p className="text-slate-400 text-center mb-8">{isLogin ? 'Acesse sua plataforma' : 'Crie sua conta para começar'}</p>
-                
-                {error && <p className="bg-red-600/30 border border-red-500 text-red-300 p-3 rounded-md mb-6 text-sm text-center">{error}</p>}
-                
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <InputField label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" />
-                    <InputField label="Senha" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••">
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-orange-400">
-                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                    </InputField>
+        <>
+            {showForgotPassword && <ForgotPasswordModal onClose={() => setShowForgotPassword(false)} setToastMessage={setToastMessage} />}
+            <div className="flex items-center justify-center min-h-screen bg-slate-900 p-4">
+                <div className="w-full max-w-md bg-slate-800 p-8 rounded-xl shadow-2xl">
+                    <div className="flex justify-center items-center mb-4">
+                        <Flame size={40} className="text-orange-500 mr-2" />
+                        <h1 className="text-4xl font-bold text-orange-400 text-center">HOTLEADS</h1>
+                    </div>
+                    <p className="text-slate-400 text-center mb-8">{isLogin ? 'Acesse sua plataforma' : 'Crie sua conta para começar'}</p>
                     
-                    <button 
-                        type="submit" 
-                        disabled={loading}
-                        className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-4 rounded-md shadow-md transition-colors duration-150 flex items-center justify-center disabled:opacity-50"
-                    >
-                        {loading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div> : (isLogin ? 'Entrar' : 'Criar Conta')}
-                    </button>
-                </form>
-                <p className="mt-8 text-center text-sm text-slate-400">
-                    {isLogin ? 'Não tem uma conta?' : 'Já tem uma conta?'}
-                    <button onClick={() => { setIsLogin(!isLogin); setError(''); }} className="font-medium text-orange-500 hover:text-orange-400 ml-1">
-                        {isLogin ? 'Crie uma aqui' : 'Faça login'}
-                    </button>
-                </p>
+                    {error && <p className="bg-red-600/30 border border-red-500 text-red-300 p-3 rounded-md mb-6 text-sm text-center">{error}</p>}
+                    
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <InputField label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" />
+                        <InputField label="Senha" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••">
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-orange-400">
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </InputField>
+
+                        {isLogin && (
+                            <div className="text-right">
+                                <button type="button" onClick={() => setShowForgotPassword(true)} className="text-xs text-orange-400 hover:text-orange-300 hover:underline">
+                                    Esqueci a minha senha
+                                </button>
+                            </div>
+                        )}
+                        
+                        <button 
+                            type="submit" 
+                            disabled={loading}
+                            className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-4 rounded-md shadow-md transition-colors duration-150 flex items-center justify-center disabled:opacity-50"
+                        >
+                            {loading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div> : (isLogin ? 'Entrar' : 'Criar Conta')}
+                        </button>
+                    </form>
+                    <p className="mt-8 text-center text-sm text-slate-400">
+                        {isLogin ? 'Não tem uma conta?' : 'Já tem uma conta?'}
+                        <button onClick={() => { setIsLogin(!isLogin); setError(''); }} className="font-medium text-orange-500 hover:text-orange-400 ml-1">
+                            {isLogin ? 'Crie uma aqui' : 'Faça login'}
+                        </button>
+                    </p>
+                </div>
             </div>
-        </div>
+        </>
     );
 };
+
+// ... Other components (AddItemModal, Sidebar, Views, etc.) remain unchanged
+// The full, correct code is included below for completeness.
 
 const AddItemModal = React.memo(({ isOpen, onClose, onSave, listNameLabel }) => {
     const [newItem, setNewItem] = useState('');
@@ -1338,25 +1377,7 @@ function App() {
         return (
             <div className="flex justify-center items-center h-screen bg-slate-900 text-white">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-                <p className="ml-3 text-lg">A autenticar...</p>
-            </div>
-        );
-    }
-
-    if (!user) {
-        return (
-            <>
-                <AuthView setToastMessage={setToastMessage} />
-                {toastMessage && <Toast message={toastMessage.text} type={toastMessage.type} onClose={() => setToastMessage(null)} />}
-            </>
-        )
-    }
-
-    if (loadingData || !settings) {
-        return ( 
-            <div className="flex justify-center items-center h-screen bg-slate-900 text-white">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-                <p className="ml-3 text-lg">A carregar dados...</p>
+                <p className="ml-3 text-lg">A iniciar...</p>
             </div>
         );
     }
@@ -1376,21 +1397,36 @@ function App() {
         }
     };
     
+    if (!user) {
+        return (
+            <>
+                <AuthView setToastMessage={setToastMessage} />
+                {toastMessage && <Toast message={toastMessage.text} type={toastMessage.type} onClose={() => setToastMessage(null)} />}
+            </>
+        )
+    }
+
+    if (loadingData || !settings) {
+        return ( 
+            <div className="flex justify-center items-center h-screen bg-slate-900 text-white">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+                <p className="ml-3 text-lg">A carregar dados...</p>
+            </div>
+        );
+    }
+    
     return (
         <div className="flex h-screen bg-slate-900 text-slate-100 font-sans">
-            {/* Mobile Sidebar Toggle */}
-            <div className="md:hidden fixed top-4 left-4 z-20">
-                 <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-slate-700 rounded-md">
+            <div className="md:hidden fixed top-4 left-4 z-50">
+                 <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-slate-700/80 rounded-md backdrop-blur-sm">
                     <Menu size={24} />
                  </button>
             </div>
 
-            {/* Overlay for mobile sidebar */}
             {isSidebarOpen && <div className="md:hidden fixed inset-0 bg-black/50 z-30" onClick={() => setIsSidebarOpen(false)}></div>}
 
-            {/* Sidebar */}
             <div className={`fixed top-0 left-0 h-full z-40 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                 <Sidebar user={user} onSignOut={handleSignOut} currentView={currentView} setCurrentView={setCurrentView} />
+                 <Sidebar user={user} onSignOut={handleSignOut} currentView={currentView} setCurrentView={(view) => { setCurrentView(view); setIsSidebarOpen(false); }} />
             </div>
 
             <main className="flex-1 p-4 sm:p-6 overflow-y-auto bg-slate-850">
