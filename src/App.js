@@ -39,8 +39,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// App ID (MUST BE USED for Firestore paths)
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+// App ID (FIXED: now correctly using the appId from your firebaseConfig)
+const appId = firebaseConfig.appId || 'default-app-id';
 
 
 // Default settings lists
