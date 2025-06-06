@@ -21,7 +21,7 @@ import {
     Timestamp
 } from 'firebase/firestore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, FunnelChart, Funnel, LabelList } from 'recharts';
-import { LogOut, Edit2, Trash2, PlusCircle, Search, Settings, LayoutDashboard, Users, Target, DollarSign, AlertTriangle, Info, CheckCircle, XCircle, Eye, EyeOff, Save, Flame, UserCircle } from 'lucide-react';
+import { LogOut, Edit2, Trash2, PlusCircle, Search, Settings, LayoutDashboard, Users, Target, DollarSign, AlertTriangle, Info, CheckCircle, XCircle, Eye, EyeOff, Save, Flame, UserCircle, Menu, X } from 'lucide-react';
 
 // --- src/firebase/config.js ---
 const firebaseConfig = {
@@ -152,7 +152,7 @@ const InputField = React.memo(({ label, name, type = "text", value, onChange, pl
 ));
 
 const ChartCard = ({ title, children }) => (
-    <div className="bg-slate-800 p-6 rounded-xl shadow-lg">
+    <div className="bg-slate-800 p-4 sm:p-6 rounded-xl shadow-lg">
         <h2 className="text-xl font-semibold text-orange-400 mb-4">{title}</h2>
         <div className="h-[300px]"> 
              {children}
@@ -401,21 +401,21 @@ const DashboardView = ({ leads, settings, goals }) => {
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <h1 className="text-3xl font-bold text-orange-400">Dashboard de Leads</h1>
-                <div className="flex items-center space-x-2">
-                    <select value={timeRange} onChange={e => setTimeRange(e.target.value)} className="bg-slate-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <h1 className="text-2xl sm:text-3xl font-bold text-orange-400">Dashboard</h1>
+                <div className="flex items-center space-x-2 w-full sm:w-auto">
+                    <select value={timeRange} onChange={e => setTimeRange(e.target.value)} className="flex-1 sm:flex-none bg-slate-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
                         <option value="all">Todo Período</option>
                         <option value="month">Este Mês</option>
                         <option value="year">Este Ano</option>
                     </select>
-                     <select value={selectedResponsible} onChange={e => setSelectedResponsible(e.target.value)} className="bg-slate-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                     <select value={selectedResponsible} onChange={e => setSelectedResponsible(e.target.value)} className="flex-1 sm:flex-none bg-slate-700 text-white p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
                         <option value="all">Todos Responsáveis</option>
                         {settings.responsaveis?.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <KpiCard title="Total de Leads" value={totalLeads} icon={Users} color="orange" />
                 <KpiCard title="Leads Ativos" value={activeLeads} icon={Users} color="amber" /> 
                 <KpiCard title="Taxa de Conversão" value={conversionRate} icon={Target} color="green" unit="%" />
@@ -651,7 +651,7 @@ const LeadsView = ({ leads, settings, addLead, updateLead, deleteLead }) => {
                 onCancel={() => setConfirmModalState({ isOpen: false, leadId: null, title: '', message: '' })}
             />
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <h1 className="text-3xl font-bold text-orange-400">Gerenciamento de Leads</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-orange-400">Gerenciamento de Leads</h1>
                 <button onClick={handleAddNewLead} className="flex items-center bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md transition-colors whitespace-nowrap">
                     <PlusCircle size={20} className="mr-2" /> Adicionar Novo Lead
                 </button>
@@ -682,7 +682,8 @@ const LeadsView = ({ leads, settings, addLead, updateLead, deleteLead }) => {
                 </select>
             </div>
 
-            <div className="overflow-x-auto bg-slate-800 rounded-lg shadow">
+            {/* Responsive Table/Cards */}
+            <div className="hidden md:block overflow-x-auto bg-slate-800 rounded-lg shadow">
                 <table className="w-full whitespace-nowrap">
                     <thead className="bg-slate-700/50 text-xs uppercase text-slate-400 tracking-wider">
                         <tr>
@@ -691,7 +692,7 @@ const LeadsView = ({ leads, settings, addLead, updateLead, deleteLead }) => {
                                     className={`px-4 py-3 text-left ${col.sortable ? 'cursor-pointer hover:bg-slate-600' : ''}`}
                                     onClick={col.sortable ? () => requestSort(col.key) : undefined}
                                 >
-                                    {col.label} {col.sortable ? getSortIndicator(col.key) : ''}
+                                    {col.label} {getSortIndicator(col.key)}
                                 </th>
                             ))}
                             <th className="px-4 py-3 text-left">Ações</th>
@@ -719,18 +720,42 @@ const LeadsView = ({ leads, settings, addLead, updateLead, deleteLead }) => {
                                 </td>
                             </tr>
                         ))}
-                         {filteredAndSortedLeads.length === 0 && (
-                            <tr>
-                                <td colSpan={columns.length + 1} className="text-center py-10 text-slate-500">
-                                    <Info size={30} className="mx-auto mb-2 text-orange-500" />
-                                    Nenhum lead encontrado.
-                                    {searchTerm || filters.statusLead || filters.origemLead || filters.responsavel ? ' Tente ajustar seus filtros.' : ' Adicione um novo lead para começar.'}
-                                </td>
-                            </tr>
-                        )}
                     </tbody>
                 </table>
             </div>
+
+            {/* Mobile Card View */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+                 {filteredAndSortedLeads.map(lead => (
+                    <div key={lead.id} className="bg-slate-800 rounded-lg shadow p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="font-bold text-orange-400 text-lg">{lead.nomeCompleto}</p>
+                                <p className="text-sm text-slate-400">{lead.produtoInteresse || "Sem produto"}</p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <button onClick={() => handleEditLead(lead)} className="text-orange-400 hover:text-orange-300 p-1.5 rounded hover:bg-orange-700/30 transition-colors" title="Editar Lead"><Edit2 size={16}/></button>
+                                <button onClick={() => openDeleteConfirmModal(lead.id, lead.nomeCompleto)} className="text-red-500 hover:text-red-400 p-1.5 rounded hover:bg-red-700/30 transition-colors" title="Excluir Lead"><Trash2 size={16}/></button>
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-700">
+                             <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusColor(lead.statusLead)} text-center min-w-[100px] inline-block`}>
+                                {lead.statusLead}
+                            </span>
+                            {getTemperatureVisual(lead.temperatura)}
+                        </div>
+                    </div>
+                 ))}
+            </div>
+
+
+            {filteredAndSortedLeads.length === 0 && (
+                <div className="text-center py-10 text-slate-500 bg-slate-800 rounded-lg">
+                    <Info size={30} className="mx-auto mb-2 text-orange-500" />
+                    Nenhum lead encontrado.
+                    {searchTerm || filters.statusLead || filters.origemLead || filters.responsavel ? ' Tente ajustar seus filtros.' : ' Adicione um novo lead para começar.'}
+                </div>
+            )}
 
             {showModal && <LeadModal lead={editingLead} settings={settings} onClose={() => setShowModal(false)} onSave={editingLead ? updateLead : addLead} />}
         </div>
@@ -919,7 +944,7 @@ const SettingsView = ({ settings, updateSettings }) => {
                 listNameLabel={addItemModalState.listNameLabel}
             />
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                 <h1 className="text-3xl font-bold text-orange-400">Configurações das Listas</h1>
+                 <h1 className="text-2xl sm:text-3xl font-bold text-orange-400">Configurações das Listas</h1>
                  <button onClick={handleSaveSettings}  disabled={isSaving} className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md transition-colors flex items-center justify-center disabled:opacity-50">
                      {isSaving ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div> : <><Save size={18} className="mr-2"/>Salvar Alterações</>}
                 </button>
@@ -1053,7 +1078,7 @@ const GoalsView = ({ goals, leads, addGoal, updateGoal, deleteGoal }) => {
                 onCancel={() => setConfirmModalState({ isOpen: false, goalId: null, title: '', message: '' })}
             />
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <h1 className="text-3xl font-bold text-orange-400">Metas e Resultados</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-orange-400">Metas e Resultados</h1>
                 <button onClick={handleAddNewGoal} className="flex items-center bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md transition-colors whitespace-nowrap">
                     <PlusCircle size={20} className="mr-2" /> Definir Nova Meta
                 </button>
@@ -1170,6 +1195,7 @@ function App() {
     const [settings, setSettings] = useState(null); 
     const [goals, setGoals] = useState([]);
     const [loadingData, setLoadingData] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
         if (!user) {
@@ -1308,7 +1334,6 @@ function App() {
         }
     };
     
-    // --- MAIN RENDER LOGIC ---
     if (!isAuthReady) {
         return (
             <div className="flex justify-center items-center h-screen bg-slate-900 text-white">
@@ -1353,8 +1378,22 @@ function App() {
     
     return (
         <div className="flex h-screen bg-slate-900 text-slate-100 font-sans">
-            <Sidebar user={user} onSignOut={handleSignOut} currentView={currentView} setCurrentView={setCurrentView} />
-            <main className="flex-1 p-6 overflow-y-auto bg-slate-850">
+            {/* Mobile Sidebar Toggle */}
+            <div className="md:hidden fixed top-4 left-4 z-20">
+                 <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-slate-700 rounded-md">
+                    <Menu size={24} />
+                 </button>
+            </div>
+
+            {/* Overlay for mobile sidebar */}
+            {isSidebarOpen && <div className="md:hidden fixed inset-0 bg-black/50 z-30" onClick={() => setIsSidebarOpen(false)}></div>}
+
+            {/* Sidebar */}
+            <div className={`fixed top-0 left-0 h-full z-40 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                 <Sidebar user={user} onSignOut={handleSignOut} currentView={currentView} setCurrentView={setCurrentView} />
+            </div>
+
+            <main className="flex-1 p-4 sm:p-6 overflow-y-auto bg-slate-850">
                 {renderView()}
             </main>
             {toastMessage && <Toast message={toastMessage.text} type={toastMessage.type} onClose={() => setToastMessage(null)} />}
